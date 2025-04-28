@@ -7,6 +7,15 @@ import json
 import os
 import time
 
+# list of endpoints
+endpoint_list = [
+    "films",
+    "people",
+    "locations",
+    "species",
+    "vehicles"
+]
+
 # Customizing logging.basicConfig() to format logging 
 logging.basicConfig(
     level = logging.DEBUG,
@@ -36,7 +45,7 @@ def Extracting_data(endpoint):
         logging.error(f"Unable to decode json for {endpoint} data.")
     
     except Exception as e:
-        logging.exception(f"An Error occured : {e}")
+        logging.error(f"An Error occured : {e}")
 
     else:
         logging.info(f"Connection to {endpoint} and decoding to .json() is successful!!")
@@ -62,7 +71,7 @@ def Extracting_data(endpoint):
             json.dump(response_json, file)
 
     except Exception as e:
-        logging.exception(f"An exception occured while saving data to {sample_file_name} or {raw_file_name}!!!")
+        logging.error(f"An exception occured while saving data to {sample_file_name} or {raw_file_name}!!!")
 
     else:
         logging.info(f"Data successfully saved in {sample_file_name} and {raw_file_name}")
@@ -71,7 +80,7 @@ def Extracting_data(endpoint):
 
 
 # Extracting data
-def Main_extraction():
+def extraction():
     """Main function to extracte data
     params
     ------
@@ -93,3 +102,80 @@ def Main_extraction():
         time.sleep(0.5)
 
     logging.debug("Extraction for all endpoints was successful!!!")
+
+# -----------------------------------------------------------------------------------
+def handling_missing_values(data_df, dict_null):
+    """Function to handle missing values
+    params
+    ------
+        data_df(pd.df): dataframe to handle null values on
+        dict_null(dict) : dictionary of columns and number of missing values
+    """
+
+    for key in dict_null.keys():
+        column = data_df[key] 
+        if str(column.dtype) == "int64":
+            data_df[column] = column.fillna(0)
+        else:
+            data_df[column] = column.fillna("Unknown")
+    
+    return data_df
+    
+def detecting_missing_values(endpoint):
+    """Function to detect and handle missing values
+    params:
+    ------
+        endpoint(str): name of the endpoint 
+    """
+
+    logging.info(f"Checking missing values for : {endpoint}")
+    
+    # Opening file
+    file_name = f"raw_json/{endpoint}_raw.json"
+    try:
+        with open(file_name, "r") as file_reader:
+            data_df = pd.read_json(file_reader)
+    except FileNotFoundError as e:
+        logging.error("File {file_name} does not exist!!")
+    except Exception as e:
+        logging.error(f"An exception occured while opening {file_name} : {e}")
+    
+    # Checking missing values 
+    null_value_count = data_df.isna().sum()
+    null_value_count_dict = null_value_count.to_dict()
+    dict_null = {}  # Dict having count of null values for each column if they have null values
+
+    for key, value in null_value_count_dict.items():
+        if value != 0:
+            dict_null[key] = value
+
+    if dict_null == {}:
+        logging.info(f"There is no null values in {endpoint}!!!")
+    else:
+        logging.info(f"There are some null values in {endpoint}!!!")
+        data_df = handling_missing_values(data_df, dict_null)
+        try:
+            with open(file_name, "w") as file_writer:
+                data_df.to_json(file_writer)
+        except Exception as e:
+            logging.error(f"An exception occured while writing {file_name} : {e}")
+
+    logging.info(f"Handling missing values successful for {endpoint}!!")
+
+def handling_duplicate_rows(endpoint):
+    pass
+
+def data_cleaning(endpoint):
+    """Function to clean data for endpoints"""
+    detecting_missing_values(endpoint)
+
+    handling_duplicate_rows(endpoint)
+
+def transformation():
+    """Main transformation function"""
+
+    logging.info("In transformation phase")
+    for endpoint in endpoint_list: 
+        data_cleaning(endpoint)
+
+transformation()
