@@ -138,7 +138,6 @@ def DfToJson(data_df, file_name):
 
     try:
         with open(file_name, "w") as file_writer:
-            data_df = pd.read_json(file_writer)
             data_df.to_json(file_writer)
     
     except FileNotFoundError as e:
