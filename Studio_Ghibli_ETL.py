@@ -6,6 +6,7 @@ import pprint
 import json
 import os
 import time
+import re
 
 # list of endpoints
 endpoint_list = [
@@ -117,13 +118,14 @@ def jsonToDf(file_name):
     try:
         with open(file_name, "r") as file_reader:
             data_df = pd.read_json(file_reader)
-    
+            return data_df
+        
     except FileNotFoundError as e:
         logging.error("File {file_name} does not exist!!")
     except Exception as e:
         logging.error(f"An exception occured while opening {file_name} : {e}")
     
-    return data_df
+    return None
 
 
 def DfToJson(data_df, file_name):
@@ -243,21 +245,28 @@ def creating_entity_ids(endpoint):
 
     logging.info(f"ID Overwriting for {endpoint} is successful!!")
 
+def mapping(endpoint):
+    """Function to map and process endpoint data"""
 
-def mapping_endpoints(endpoint):
-    """
-    Establishing relationship between collections by creating a different entity_id and connecting with another collections
-    
-    Params
-    -------
-        endpoint(str): name of the endpoint 
-    """
-    
-    # Saving column_names for every endpoint data
     file_name = f"raw_json/{endpoint}_raw.json"
-    data_df = jsonToDf(file_name)
+    try:
+        with open(file_name, "r") as file_reader:
+            data_json = json.load(file_reader)
+    except Exception as e:
+            logging.error(f"An error while opening :{endpoint}")
 
-    
+    url_endpoint_dict = {}
+
+    for column in data_json.keys():
+
+        if isinstance(data_json.get(column).get("0"), list) and "ghibliapi" in str(data_json.get(column).get("0")[0]):
+            endpoint_to_map = str(data_json.get(column).get("0")[0]).split("/")[3]
+            url_endpoint_dict[column] = endpoint_to_map
+        elif isinstance(data_json.get(column).get("0"), str) and "ghibliapi" in data_json.get(column).get("0"):
+            endpoint_to_map = str(data_json.get(column).get("0")).split("/")[3]
+        
+    print(url_endpoint_dict)
+
 
 def data_cleaning(endpoint):
     """Function to clean data for endpoints"""
@@ -281,29 +290,16 @@ def transformation():
         # creating_entity_ids(endpoint)
 
         # For establishing relationship
-        mapping_endpoints(endpoint)
+        pass
+    
+    mapping("vehicles")
 
 transformation()
 
 
 def testing():
-    list_1 = ["Shivam", "Nishita", "Shivam", "Hi"]
-    df = pd.DataFrame({
-        "name": list_1,
-        "class" : [1, 12, 23, 55]
-        }
-    )
-    name_list = list(df["name"])
-    dict1 = {}
-    id = 1
-    
-    for name in name_list:
-        if name not in dict1.keys():
-            dict1[name] = id
-            id += 1
-    
-    df["name"] = df["name"].map(dict1)
-
-    print(df)
+    string = "fdsfas"
+    result = "fds" in string
+    print(result)
 
 # testing()
