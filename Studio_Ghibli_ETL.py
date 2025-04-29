@@ -257,7 +257,7 @@ def mapping_endpoints(endpoint):
     file_name = f"raw_json/{endpoint}_raw.json"
     data_df = jsonToDf(file_name)
 
-
+    
 
 def data_cleaning(endpoint):
     """Function to clean data for endpoints"""
@@ -278,10 +278,10 @@ def transformation():
         # data_cleaning(endpoint)
 
         # For creating another id and relationship
-        creating_entity_ids(endpoint)
+        # creating_entity_ids(endpoint)
 
         # For establishing relationship
-        # mapping_endpoints(endpoint)
+        mapping_endpoints(endpoint)
 
 transformation()
 
