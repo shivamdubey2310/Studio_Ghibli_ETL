@@ -1,3 +1,4 @@
+import pymongo.mongo_client
 import requests
 import pandas as pd
 import datetime 
@@ -7,6 +8,7 @@ import json
 import os
 import time
 import re
+import pymongo
 
 # list of endpoints
 endpoint_list = [
@@ -221,6 +223,8 @@ def creating_entity_ids(endpoint):
     -------
         endpoint(str): name of the endpoint 
     """
+    
+    logging.info(f"Trying to Overwrite for {endpoint} ")
 
     # Saving column_names for every endpoint data
     file_name = f"raw_json/{endpoint}_raw.json"
@@ -245,32 +249,16 @@ def creating_entity_ids(endpoint):
 
     logging.info(f"ID Overwriting for {endpoint} is successful!!")
 
-def mapping(endpoint):
-    """Function to map and process endpoint data"""
-
-    file_name = f"raw_json/{endpoint}_raw.json"
-    try:
-        with open(file_name, "r") as file_reader:
-            data_json = json.load(file_reader)
-    except Exception as e:
-            logging.error(f"An error while opening :{endpoint}")
-
-    url_endpoint_dict = {}
-
-    for column in data_json.keys():
-
-        if isinstance(data_json.get(column).get("0"), list) and "ghibliapi" in str(data_json.get(column).get("0")[0]):
-            endpoint_to_map = str(data_json.get(column).get("0")[0]).split("/")[3]
-            url_endpoint_dict[column] = endpoint_to_map
-        elif isinstance(data_json.get(column).get("0"), str) and "ghibliapi" in data_json.get(column).get("0"):
-            endpoint_to_map = str(data_json.get(column).get("0")).split("/")[3]
-        
-    print(url_endpoint_dict)
-
 
 def data_cleaning(endpoint):
-    """Function to clean data for endpoints"""
+    """Function to clean data for endpoints
+    params
+    -------
+        endpoint(str): the name of the endpoint
+    """
     
+    logging.debug(f"In Data cleaning phase for {endpoint}!!")
+
     # For missing values
     detecting_missing_values(endpoint)
     
@@ -279,10 +267,41 @@ def data_cleaning(endpoint):
 
     logging.debug(f"Data cleaning for {endpoint} completed successfully!!")
 
+
+def string_to_list(endpoint):
+    """Converting eyes colors, hair colors strings to list
+    Params
+    -------
+        endpoint(str): the name of the endpoint
+    """
+
+    logging.info("Trying to convert string to list")
+
+    file_name = f"raw_json/{endpoint}_raw.json"
+    data_df = jsonToDf(file_name = file_name)
+
+    def converter(string):
+        """Converter function to convert string to list
+        Params
+        ------
+            string(str) : string to convert in list
+        """
+
+        string_list = string.split(",")
+        return string_list
+
+    data_df["eye_colors"] = data_df["eye_colors"].map(converter)
+    data_df["hair_colors"] = data_df["hair_colors"].map(converter)
+    
+    DfToJson(data_df = data_df, file_name = file_name)
+
+    logging.info("Successfully converted convert string to list")
+
+
 def transformation():
     """Main transformation function"""
 
-    logging.info("In transformation phase")
+    logging.debug("In transformation phase")
     for endpoint in endpoint_list: 
         # data_cleaning(endpoint)
 
@@ -292,14 +311,21 @@ def transformation():
         # For establishing relationship
         pass
     
-    mapping("vehicles")
+    # Some other transformations
+    string_to_list("species")
+
+    logging.debug("The Transformation is successful!!!")
+
+
+# --------------------------------------------------------------------------------------------------
+
+def establishing_connection():
+    connection_string = os.getenv("CONNECTION_STRING")
+    myClient = pymongo.MongoClient(connection_string)
+    
+
+def load():
+    establishing_connection()
 
 transformation()
-
-
-def testing():
-    string = "fdsfas"
-    result = "fds" in string
-    print(result)
-
-# testing()
+load()
