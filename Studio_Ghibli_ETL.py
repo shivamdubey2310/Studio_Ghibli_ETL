@@ -1,3 +1,4 @@
+import pymongo.errors
 import pymongo.mongo_client
 import requests
 import pandas as pd
@@ -30,6 +31,7 @@ logging.basicConfig(
     datefmt="%Y-%m-%d %H:%M",
 )
 
+# ------------------------------------------------------------------------------------------------------
 def Extracting_data(endpoint):
     """Function to extract data from an endpoint
     Params:
@@ -52,7 +54,6 @@ def Extracting_data(endpoint):
 
     else:
         logging.info(f"Connection to {endpoint} and decoding to .json() is successful!!")
-
 
     try:
         logging.info(f"Trying to save {endpoint} data to sample directory!!")
@@ -81,6 +82,7 @@ def Extracting_data(endpoint):
     
     logging.info(f"Extraction for {endpoint} completed successfully!!!")
 
+# ------------------------------------------------------------------------------------------------------
 
 # Extracting data
 def extraction():
@@ -129,6 +131,7 @@ def jsonToDf(file_name):
     
     return None
 
+# ------------------------------------------------------------------------------------------------------
 
 def DfToJson(data_df, file_name):
     """
@@ -149,6 +152,7 @@ def DfToJson(data_df, file_name):
     except Exception as e:
         logging.error(f"An exception occured while opening {file_name} : {e}")
 
+# ------------------------------------------------------------------------------------------------------
 
 def handling_missing_values(data_df, dict_null):
     """Function to handle missing values
@@ -166,6 +170,8 @@ def handling_missing_values(data_df, dict_null):
             data_df[column] = column.fillna("Unknown")
     
     return data_df
+
+# ------------------------------------------------------------------------------------------------------
     
 def detecting_missing_values(endpoint):
     """Function to detect and handle missing values
@@ -197,6 +203,7 @@ def detecting_missing_values(endpoint):
         DfToJson(data_df, file_name)
     logging.info(f"Handling missing values successful for {endpoint}!!")
 
+# ------------------------------------------------------------------------------------------------------
 
 def handling_duplicate_rows(endpoint):
     """Handling duplicate entries
@@ -216,6 +223,8 @@ def handling_duplicate_rows(endpoint):
     DfToJson(data_df, file_name)
 
     logging.info(f"Handling duplicate values successful for {endpoint}!!")
+
+# ------------------------------------------------------------------------------------------------------
 
 def creating_entity_ids(endpoint):
     """Creating new ids (Overwriting older ids)
@@ -249,6 +258,7 @@ def creating_entity_ids(endpoint):
 
     logging.info(f"ID Overwriting for {endpoint} is successful!!")
 
+# ------------------------------------------------------------------------------------------------------
 
 def data_cleaning(endpoint):
     """Function to clean data for endpoints
@@ -267,6 +277,7 @@ def data_cleaning(endpoint):
 
     logging.debug(f"Data cleaning for {endpoint} completed successfully!!")
 
+# ------------------------------------------------------------------------------------------------------
 
 def string_to_list(endpoint):
     """Converting eyes colors, hair colors strings to list
@@ -297,6 +308,7 @@ def string_to_list(endpoint):
 
     logging.info("Successfully converted convert string to list")
 
+# ------------------------------------------------------------------------------------------------------
 
 def transformation():
     """Main transformation function"""
@@ -316,16 +328,124 @@ def transformation():
 
     logging.debug("The Transformation is successful!!!")
 
-
 # --------------------------------------------------------------------------------------------------
 
 def establishing_connection():
-    connection_string = os.getenv("CONNECTION_STRING")
-    myClient = pymongo.MongoClient(connection_string)
+    """Establishing connection to mongodb"""
+
+    logging.info("Trying to establish connection")
+    myClient = None
+
+    try:
+        connection_string = os.getenv("CONNECTION_STRING")
+        myClient = pymongo.MongoClient(connection_string)
+        # Verifying connection
+        db_list = myClient.list_database_names()
     
+    except pymongo.errors.ConnectionFailure as e:
+        logging.error(f"An error occured while establishing connection : {e}")    
+    
+    except Exception as e:
+        logging.error(f"Any other error occured while establishing connection : {e}")
+
+    else:
+        logging.info(f"Connection Established successfully")    
+
+    return myClient
+
+# ------------------------------------------------------------------------------------------------------
+
+def creating_db_and_collections(myClient):
+    """Creating database and collections
+    params
+    --------
+        myClient(connection_object): Mongodb connection object
+    """
+
+    logging.info(f"Creating db and collections")
+
+    try:
+        db_name = os.getenv("DATABASE_NAME")
+        print(db_name)
+        Ghibli_db = myClient[db_name]
+        
+        # here collection names are fetched from endpoint_list
+        films_collection = Ghibli_db[endpoint_list[0]]
+        people_collection = Ghibli_db[endpoint_list[1]]
+        locations_collection = Ghibli_db[endpoint_list[2]]
+        species_collection = Ghibli_db[endpoint_list[3]]
+        vehicles_collection = Ghibli_db[endpoint_list[4]]
+    
+    except Exception as e:
+        logging.error(f"An error occured when creating db and collections: {e}")
+    
+    logging.info(f"Creating db Successful!!!")
+
+# ------------------------------------------------------------------------------------------------------
+
+def loading_data(myClient):
+    """Creating database and collections
+    params
+    --------
+        myClient(connection_object): Mongodb connection object
+    """
+
+    for endpoint in endpoint_list:
+        file_name = f"raw_json/{endpoint}_raw.json"
+        data_df = jsonToDf(file_name = file_name)
+        data_dict = data_df.to_dict('records')
+
+        db_name = os.getenv("DATABASE_NAME")
+        Ghibli_db = myClient[db_name]
+
+        coll_name = Ghibli_db[endpoint]
+
+        coll_name.insert_many(data_dict)
+    
+    # Verification
+    db_list = myClient.list_database_names()
+
+    creation_succeeded = False
+    if db_name in db_list:
+        logging.info(f"Creating db Successful!!!")
+        
+        # Verifying collections
+        coll_list = Ghibli_db.list_collection_names()
+        
+        for coll_name in endpoint_list:
+            if coll_name in coll_list:
+                logging.info(f"Creation of {coll_name} is successful!!")
+                           
+                # Verifying data
+                logging.info(f"Verifying {coll_name} data!!!")
+
+                collection = Ghibli_db[coll_name]
+
+                dataOne = collection.find_one()
+
+                if dataOne:
+                    logging.info(f"Inserting Data in collection {coll_name} is Successful!!!")
+
+                else:
+                    logging.error(f"Due to an error inserting Data in collection {coll_name} is not Successful!!!")
+            else:
+                logging.error(f"Due to an error Creating collection {coll_name} is not Successful!!!")
+    else:
+        logging.error(f"Due to an error Creating db is not Successful!!!")
+
+# ------------------------------------------------------------------------------------------------------
 
 def load():
-    establishing_connection()
+    myClient = establishing_connection()
+    
+    # Creating database and collections
+    creating_db_and_collections(myClient)
 
+    # Loading data
+    loading_data(myClient)
+
+# ------------------------------------------------------------------------------------------------------
+extraction()
 transformation()
 load()
+# ------------------------------------------------------------------------------------------------------
