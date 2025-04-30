@@ -1,0 +1,21 @@
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - astro-airflow
+
+  airflow-webserver:
+    depends_on:
+      - mongodb
+
+volumes:
+  mongo_data:
+
+networks:
+  astro-airflow:
+    external: true
