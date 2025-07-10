@@ -389,7 +389,7 @@ def creating_db_and_collections(myClient):
 
 def loading_data(myClient):
     """Creating database and collections
-    params
+    Params
     --------
         myClient(connection_object): Mongodb connection object
     """
