@@ -1,71 +1,115 @@
-# Studio_Ghibli_ETL
-My third ETL project. 
+# Studio Ghibli ETL Pipeline
 
-__Base URL__ - https://ghibliapi.vercel.app/
+A comprehensive ETL (Extract, Transform, Load) pipeline that extracts data from the Studio Ghibli API, transforms it using pandas, and loads it into MongoDB for analysis and storage. The project includes both standalone Python ETL scripts and Apache Airflow DAGs for orchestrated data pipelines.
 
-## **Flow**
-1. Extracting data from **Base URL** using *requests(python)*
-2. Transforming using *pandas(python)*
-3. Loading it into _mongodb_ using _pymongo(python)_
+**Base URL:** https://ghibliapi.vercel.app/
 
+## ✨ Features
 
-## Must configure mongodb to accept connections from all IPs
-Here's how to configure MongoDB to accept external connections (Step 1):
+- **Standalone ETL Script**: Direct Python execution for immediate data processing
+- **Apache Airflow Integration**: Orchestrated workflows using Astro CLI
+- **Data Validation**: Comprehensive logging and error handling
+- **Multiple Data Sources**: Films, people, locations, species, and vehicles
+- **MongoDB Storage**: Scalable NoSQL database integration
 
-### **Step 1: Configure MongoDB to Accept External Connections**
+## 📋 Overview
 
-1. **Locate MongoDB Configuration File**  
-   The configuration file is typically found at:
-   ```
-   /etc/mongod.conf
-   ```
-   (Use `sudo` to edit it if needed)
+This project demonstrates a complete ETL workflow by:
+- Extracting movie, character, and location data from the Studio Ghibli API
+- Cleaning and transforming the data using pandas
+- Storing the processed data in MongoDB for future analysis
 
-2. **Edit the Configuration File**  
-   Open it with a text editor like `nano`:
+## 🔄 ETL Flow
+
+1. **Extract**: Fetch data from Studio Ghibli API endpoints using `requests`
+2. **Transform**: Clean, normalize, and structure data using `pandas`
+3. **Load**: Insert transformed data into MongoDB collections using `pymongo`
+
+## 📚 API Endpoints
+
+The project extracts data from the following endpoints:
+- `/films` - Studio Ghibli movies
+- `/people` - Characters from the movies
+- `/locations` - Locations featured in the films
+- `/species` - Different species in the Ghibli universe
+- `/vehicles` - Vehicles used in the movies
+
+## 🚀 Usage
+
+### Standalone Execution
+
+Activate your virtual environment and run the ETL pipeline:
+```bash
+source new_env/bin/activate  # Activate virtual environment
+python Studio_Ghibli_ETL.py
+```
+
+### Airflow/Astro Execution
+
+1. Start the Astro environment:
    ```bash
-   sudo nano /etc/mongod.conf
+   cd astroProject
+   astro dev start
    ```
 
-3. **Modify the `bindIp` Setting**  
-   Look for the `net` section and change:
-   ```yaml
-   net:
-     port: 27017
-     bindIp: 127.0.0.1  # Default (only allows local connections)
-   ```
-   To:
-   ```yaml
-   net:
-     port: 27017
-     bindIp: 0.0.0.0    # Allow connections from any IP
-   ```
+2. Access Airflow UI at `http://localhost:8080`
+   - Username: `admin`
+   - Password: `admin`
 
-4. **Save and Exit**  
-   - In `nano`: Press `CTRL+X` → `Y` → `Enter`.
+3. Trigger the Studio Ghibli ETL DAG from the Airflow UI
 
-5. **Restart MongoDB Service**  
-   ```bash
-   sudo systemctl restart mongod
-   ```
+### Monitoring
 
-6. **Verify MongoDB is Running**  
-   ```bash
-   sudo systemctl status mongod
-   ```
-   You should see `active (running)` in the output.
+Check the ETL execution logs:
+```bash
+# View the log file
+tail -f ETL_log.log
+```
 
----
+## 📁 Project Structure
 
-### **Important Security Note**  
-Binding to `0.0.0.0` opens MongoDB to the network. To secure it:
-1. Enable authentication in `mongod.conf`:
-   ```yaml
-   security:
-     authorization: enabled
-   ```
-2. Create a MongoDB user with access controls.
-3. Use a firewall (e.g., `ufw`) to restrict access to trusted IPs:
-   ```bash
-   sudo ufw allow from 192.168.1.0/24 to any port 27017  # Example for local network
-   ```
+```
+Studio_Ghibli_ETL/
+├── Studio_Ghibli_ETL.py    # Main ETL script
+├── ETL_log.log             # Execution logs
+├── species_raw.json        # Raw species data cache
+├── README.md               # Project documentation
+├── new_env/                # Python virtual environment
+├── astroProject/           # Apache Airflow project (Astro CLI)
+│   ├── dags/               # Airflow DAGs
+│   │   ├── Studio_Ghibli_ETL.py  # Airflow version of ETL
+│   │   ├── exampledag.py   # Example DAG
+├── raw_json/               # Raw API response cache
+│   ├── films_raw.json
+|   ├── ...  
+│   └── vehicles_raw.json
+└── sample_json/            # Sample data for testing
+    ├── films_sample.json
+    ├── ...  
+    └── vehicles_sample.json
+
+```
+
+## 📊 Expected Output
+
+After successful execution, your MongoDB will contain collections:
+- `films` - Movie information and metadata
+- `characters` - Character details and relationships
+- `locations` - Location data with geographical information
+- `species` - Species information and characteristics
+- `vehicles` - Vehicle data and specifications
+
+### Log Files
+- `ETL_log.log` - Contains detailed execution logs, errors, and processing statistics
+- Raw JSON files cached in `raw_json/` directory for offline processing
+
+## 📝 Development Notes
+
+- The project uses a virtual environment (`new_env/`) for dependency isolation
+- Raw data is cached locally to reduce API calls during development
+- Both standalone and Airflow execution methods are supported
+- Comprehensive logging is implemented for debugging and monitoring
+
+## 📄 License
+
+This project is for educational purposes and uses the public Studio Ghibli API.
